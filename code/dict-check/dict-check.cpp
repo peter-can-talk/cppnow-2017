@@ -17,130 +17,128 @@
 #include "llvm/Support/raw_ostream.h"
 
 // Standard includes
-#include <cassert>
 #include <fstream>
 #include <memory>
 #include <string>
-#include <type_traits>
 
 namespace DictionaryCheck {
 
-class Dictionary {
- public:
-  explicit Dictionary(const std::string& filename) {
-    std::ifstream stream(filename);
-    for (std::string word; stream >> word;) {
-      _words.insert(word);
-    }
+using Dictionary = llvm::StringSet<>;
 
-    // clang-format off
-    llvm::errs() << "Read " << _words.size()
-                 << " words from " << filename
+namespace {
+Dictionary ReadWordsFromFile(const std::string& Filename) {
+  std::ifstream Stream(Filename);
+  if (!Stream.good()) {
+    llvm::errs() << "Error reading from: " << Filename << '\n';
+    return {};
+  }
+
+  // Assume one word per line.
+  Dictionary Words;
+  for (std::string Word; Stream >> Word;) {
+    Words.insert(Word);
+  }
+
+  if (Words.empty()) {
+    llvm::errs() << "Dictionary must not be empty!";
+  } else {
+    llvm::errs() << "Read " << Words.size() << " words from " << Filename
                  << '\n';
-    // clang-format on
   }
 
-  bool contains(llvm::StringRef word) const {
-    return _words.count(word);
-  }
-
- private:
-  llvm::StringSet<> _words;
-};
-
+  return Words;
+}
+}  // namespace
 
 class Checker : public clang::ast_matchers::MatchFinder::MatchCallback {
  public:
   using MatchResult = clang::ast_matchers::MatchFinder::MatchResult;
 
-  explicit Checker(const std::string& dictionaryFile)
-  : _dictionary(dictionaryFile) {
+  explicit Checker(const Dictionary&& Words) : Words(std::move(Words)) {
   }
 
-  void run(const MatchResult& result) {
-    const auto* target = result.Nodes.getNodeAs<clang::NamedDecl>("target");
-    assert(target != nullptr);
+  void run(const MatchResult& Result) {
+    const auto* Target = Result.Nodes.getNodeAs<clang::NamedDecl>("target");
 
-    auto& diagnostics = result.Context->getDiagnostics();
-    const auto name = target->getName();
+    auto& Diagnostics = Result.Context->getDiagnostics();
+    const auto Name = Target->getName();
 
-    if (_dictionary.contains(name.lower())) return;
+    if (Words.count(Name.lower())) return;
 
-    const auto id =
-        diagnostics.getCustomDiagID(clang::DiagnosticsEngine::Warning,
+    const auto ID =
+        Diagnostics.getCustomDiagID(clang::DiagnosticsEngine::Warning,
                                     "The word '%0' is not in the dictionary");
 
-    auto builder = diagnostics.Report(target->getLocation(), id);
-    builder.AddString(name);
+    auto Builder = Diagnostics.Report(Target->getLocation(), ID);
+    Builder.AddString(Name);
 
-    const auto start = target->getLocation();
-    const auto end = start.getLocWithOffset(name.size());
-    const auto range = clang::CharSourceRange::getCharRange({start, end});
-    builder.AddSourceRange(range);
+    const auto Start = Target->getLocation();
+    const auto End = Start.getLocWithOffset(Name.size());
+    const auto Range = clang::CharSourceRange::getCharRange({Start, End});
+    Builder.AddSourceRange(Range);
   }
 
  private:
-  Dictionary _dictionary;
+  Dictionary Words;
 };
-
 
 class Consumer : public clang::ASTConsumer {
  public:
-  Consumer(const std::string& dictionaryFile,
-           bool includeFunctions,
-           bool includeRecords)
-  : _checker(dictionaryFile) {
+  Consumer(const Dictionary&& Words, bool IncludeFunctions, bool IncludeRecords)
+  : Checker(std::move(Words)) {
     using namespace clang::ast_matchers;
 
-    const auto variableMatcher =
+    const auto VariableMatcher =
         declaratorDecl(unless(functionDecl())).bind("target");
-    _matchFinder.addMatcher(variableMatcher, &_checker);
+    MatchFinder.addMatcher(VariableMatcher, &Checker);
 
-    if (includeFunctions) {
-      const auto functionMatcher = functionDecl().bind("target");
-      _matchFinder.addMatcher(functionMatcher, &_checker);
+    if (IncludeFunctions) {
+      const auto FunctionMatcher = functionDecl().bind("target");
+      MatchFinder.addMatcher(FunctionMatcher, &Checker);
     }
 
-    if (includeRecords) {
-      const auto recordMatcher =
+    if (IncludeRecords) {
+      // Avoid implicit class name.
+      const auto RecordMatcher =
           recordDecl(unless(isImplicit())).bind("target");
-      _matchFinder.addMatcher(recordMatcher, &_checker);
+      MatchFinder.addMatcher(RecordMatcher, &Checker);
     }
   }
 
-  void HandleTranslationUnit(clang::ASTContext& context) override {
-    _matchFinder.matchAST(context);
+  void HandleTranslationUnit(clang::ASTContext& Context) override {
+    MatchFinder.matchAST(Context);
   }
 
  private:
-  clang::ast_matchers::MatchFinder _matchFinder;
-
-  Checker _checker;
+  clang::ast_matchers::MatchFinder MatchFinder;
+  Checker Checker;
 };
 
 class Action : public clang::ASTFrontendAction {
  public:
   using ASTConsumerPointer = std::unique_ptr<clang::ASTConsumer>;
 
-  Action(const std::string& dictionaryFile,
-         bool includeFunctions,
-         bool includeRecords)
-  : _dictionaryFile(dictionaryFile)
-  , _includeFunctions(includeFunctions)
-  , _includeRecords(includeRecords) {
+  Action(const std::string& DictionaryFile,
+         bool IncludeFunctions,
+         bool IncludeRecords)
+  : DictionaryFile(DictionaryFile)
+  , IncludeFunctions(IncludeFunctions)
+  , IncludeRecords(IncludeRecords) {
   }
 
-  ASTConsumerPointer
-  CreateASTConsumer(clang::CompilerInstance&, llvm::StringRef) {
-    return std::make_unique<Consumer>(_dictionaryFile,
-                                      _includeFunctions,
-                                      _includeRecords);
+  ASTConsumerPointer CreateASTConsumer(clang::CompilerInstance& Compiler,
+                                       llvm::StringRef Filename) {
+    const auto Words = ReadWordsFromFile(DictionaryFile);
+    if (Words.empty()) return nullptr;
+    return std::make_unique<Consumer>(std::move(Words),
+                                      IncludeFunctions,
+                                      IncludeRecords);
   }
 
  private:
-  std::string _dictionaryFile;
-  bool _includeFunctions;
-  bool _includeRecords;
+  std::string DictionaryFile;
+  bool IncludeFunctions;
+  bool IncludeRecords;
 };
 }  // namespace DictionaryCheck
 
@@ -154,29 +152,41 @@ llvm::cl::extrahelp DictionaryCheckCategoryHelp(R"(
   )");
 
 llvm::cl::opt<std::string>
-    dictionaryOption("dict",
+    DictionaryOption("dict",
                      llvm::cl::Required,
                      llvm::cl::desc("The dictionary file to load"),
                      llvm::cl::cat(DictionaryCheckCategory));
+llvm::cl::alias
+    DictionaryShortOption("d",
+                          llvm::cl::desc("Alias for the --dict option"),
+                          llvm::cl::aliasopt(DictionaryOption));
 
 llvm::cl::opt<bool>
-    functionsOption("functions",
+    FunctionsOption("functions",
                     llvm::cl::desc("Include function names in the check"),
                     llvm::cl::cat(DictionaryCheckCategory));
+llvm::cl::alias
+    FunctionShortOption("f",
+                        llvm::cl::desc("Alias for the --functions option"),
+                        llvm::cl::aliasopt(FunctionsOption));
 
 llvm::cl::opt<bool>
-    recordsOption("records",
+    RecordsOption("records",
                   llvm::cl::desc("Include classes/structs/unions in the check"),
                   llvm::cl::cat(DictionaryCheckCategory));
+llvm::cl::alias
+    RecordsShortOption("r",
+                       llvm::cl::desc("Alias for the --records option"),
+                       llvm::cl::aliasopt(RecordsOption));
 
 }  // namespace
 
 
 struct ToolFactory : public clang::tooling::FrontendActionFactory {
   clang::FrontendAction* create() override {
-    return new DictionaryCheck::Action(dictionaryOption,
-                                       functionsOption,
-                                       recordsOption);
+    return new DictionaryCheck::Action(DictionaryOption,
+                                       FunctionsOption,
+                                       RecordsOption);
   }
 };
 
