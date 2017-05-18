@@ -1,0 +1,96 @@
+% !TEX root = ../presentation.tex
+% AST
+
+\begin{frame}[fragile]{Clang: AST}
+\end{frame}
+
+\begin{frame}[fragile]{Clang: AST}
+  \vs{0.6cm}
+  \begin{lstlisting}[basicstyle=\LARGE\ttfamily]
+        if (0xc > l) {
+          const char* a = "ng";
+        }
+  \end{lstlisting}
+
+  \vs{0.2cm}
+  \begin{center}
+    \ttfamily\LARGE
+    \phantom{Stmt Decl Expr Type} % Spacing
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]{Clang: AST}
+  \vs{0.2cm}
+  \begin{lstlisting}[
+    basicstyle=\LARGE\ttfamily\color{brightred},
+    keywordstyle=\color{brightred},
+    stringstyle=\color{brightred}
+  ]
+        if (0xc > l) {
+          const char* a = "ng";
+        }
+  \end{lstlisting}
+
+  \vs{0.2cm}
+  \begin{center}
+    \ttfamily\LARGE
+    \color{brightred}Stmt\hs{0.2cm}
+    \phantom{Decl Expr Type} % Spacing
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]{Clang: AST}
+  \vs{0.2cm}
+  \begin{lstlisting}[basicstyle=\LARGE\ttfamily]
+        if (0xc > l) {
+          @\color{brightred}const char* a = "ng";@
+        }
+  \end{lstlisting}
+
+  \vs{0.2cm}
+  \begin{center}
+    \ttfamily\LARGE
+    Stmt\hs{0.2cm}
+    \color{brightred}Decl\hs{0.2cm}
+    \phantom{Expr Type} % Spacing
+  \end{center}
+
+\end{frame}
+
+\begin{frame}[fragile]{Clang: AST}
+  \vs{0.2cm}
+  \begin{lstlisting}[basicstyle=\LARGE\ttfamily]
+        if (@\color{brightred}0xc > l@) {
+          const char* a = @\color{brightred}"ng"@;
+        }
+  \end{lstlisting}
+
+  \vs{0.2cm}
+  \begin{center}
+    \ttfamily\LARGE
+    Stmt\hs{0.2cm}
+    Decl\hs{0.2cm}
+    \color{brightred}Expr\hs{0.2cm}
+    \phantom{Type} % Spacing
+  \end{center}
+
+\end{frame}
+
+\begin{frame}[fragile]{Clang: AST}
+  \vs{0.2cm}
+  \begin{lstlisting}[basicstyle=\LARGE\ttfamily]
+        if (0xc > l) {
+          @\color{brightred}const char*@ a = "ng";
+        }
+  \end{lstlisting}
+
+  \vs{0.2cm}
+  \begin{center}
+    \ttfamily\LARGE
+    Stmt\hs{0.2cm}
+    Decl\hs{0.2cm}
+    Expr\hs{0.2cm}
+    \color{brightred}Type
+  \end{center}
+
+\end{frame}

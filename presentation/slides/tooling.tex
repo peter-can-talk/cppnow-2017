@@ -1,0 +1,117 @@
+% !TEX root = ../presentation.tex
+% Tooling
+
+\begin{slide}{}
+  \includegraphics[scale=0.9, trim={0.1cm 0 0 0}, clip]{clang-all-things}
+\end{slide}
+
+\begin{slide}{Clang Tooling}\end{slide}
+\textframe{Clang Tooling}{libClang}
+
+\begin{frame}[fragile]{Clang Tooling: libClang}
+  \begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
+    #include <stdio.h>
+    #include <clang-c/Index.h>
+
+    CXChildVisitResult
+    visit(CXCursor cursor, CXCursor, CXClientData data) {
+      const CXSourceLocation location = clang_getCursorLocation(cursor);
+      if (!clang_Location_isFromMainFile(location)) {
+        return CXChildVisit_Continue;
+      }
+
+      const CXString spelling = clang_getCursorSpelling(cursor);
+      printf("%s", clang_getCString(spelling));
+      clang_disposeString(spelling);
+
+      return CXChildVisit_Recurse;
+    }
+  \end{lstlisting}
+\end{frame}
+
+\textframe{Clang Tooling}{libTooling}
+
+\begin{slide}{Clang Tooling: libTooling}
+  \onslide<2->{\textbf{Clang Tidy}}
+  \vspace{0.2cm}
+
+  \onslide<5->{\texttt{./clang-tidy -checks="*,my-check" file.cpp}}
+
+  \vspace{0.9cm}
+
+
+  \onslide<3->{\textbf{Clang Plugin}}
+  \vspace{0.2cm}
+
+  \onslide<6->{
+    \texttt{./clang++ -Xclang load -Xclang my-check.so \textbackslash\\
+          -Xclang -add-plugin -Xclang my-check file.cpp}
+  }
+
+  \vspace{0.7cm}
+
+  \onslide<4->{\textbf{Clang Tool}}
+  \vspace{0.2cm}
+
+  \onslide<7->{\texttt{./my-check file.cpp}}
+\end{slide}
+
+\begin{frame}[fragile]{Clang Tooling: libTooling}
+\end{frame}
+
+\begin{frame}[fragile]{Clang Tooling: libTooling}
+  \begin{lstlisting}[basicstyle=\large\ttfamily]
+    const
+  \end{lstlisting}
+  \vspace{2cm}
+\end{frame}
+
+\begin{frame}[fragile]{Clang Tooling: libTooling}
+  \begin{lstlisting}[basicstyle=\large\ttfamily]
+    const auto lambda = [] () {
+
+
+
+    };
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Clang Tooling: libTooling}
+  \begin{lstlisting}[basicstyle=\large\ttfamily]
+    const auto lambda = [] (auto) {
+
+
+
+    };
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Clang Tooling: libTooling}
+  \begin{lstlisting}[basicstyle=\large\ttfamily]
+    const auto lambda = [] (auto) noexcept {
+
+
+
+    };
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Clang Tooling: libTooling}
+  \begin{lstlisting}[basicstyle=\large\ttfamily]
+    const auto lambda = [] (auto) noexcept {
+        bool done = true;
+        flip: done = !done;
+        if (!done) goto flip;
+    };
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Clang Tooling: libTooling}
+  \begin{lstlisting}[basicstyle=\large\ttfamily]
+  const auto clang_lambda = [] (auto) noexcept {
+      bool done = true;
+      flip: done = !done;
+      if (!done) goto flip;
+  };
+  \end{lstlisting}
+\end{frame}

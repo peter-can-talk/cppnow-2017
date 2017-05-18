@@ -1,0 +1,134 @@
+% !TEX root = ../presentation.tex
+% Tour
+
+\newcommand{\volume}[8]{
+  \yzplane{{#1 - 0.25}} {
+    \draw ({#4/2}, #5) node {\footnotesize #7};
+  }
+  \yzplane{{#1 - 0.35}} {
+    \draw (#4, {#5/2}) node {\footnotesize #8};
+  }
+  \yzplane{#1} {
+    \draw (#2, 0) rectangle ++(#4, #5);
+  }
+  \yzplane{{#1 + #3}} {
+    \draw (#2, 0) rectangle ++(#4, #5);
+  }
+  \xzplane{#2} {
+    \draw (#1, 0) -- ++(#3, 0);
+    \draw (#1, {#5 + 0.0375}) -- ++(#3, 0)
+          node [midway, below] {\footnotesize #6};
+  }
+  \xzplane{{#2 + #4}} {
+    \draw (#1, -0.035) -- ++(#3, 0);
+    \draw (#1, #5) -- ++(#3, 0);
+  }
+}
+
+\newcommand{\gridvolume}[8]{
+  \yzplane{{#1 - 0.3}} {
+    \draw ({#4/2}, #5) node {\footnotesize #7};
+    \draw (#4, {#5/2}) node [above] {\footnotesize #8};
+  }
+  \yzplane{#1} {
+    \draw [step=0.1, thin] (#2, 0) grid ++(#4, #5);
+  }
+  \yzplane{{#1 + #3}} {
+    \draw [step=0.1, thin] (#2, 0) grid ++(#4, #5);
+  }
+  \xyplane{0} {
+    \draw [step=0.1, thin] (#1, #2) grid ++(#3, #4);
+  }
+  \xyplane{#5} {
+    \draw [step=0.1, thin] (#1, #2) grid ++(#3, #4);
+  }
+  \xzplane{{#2 + #4}} {
+    \draw [step=0.1, thin] (#1, 0) grid ++(#3, #5);
+  }
+  \xzplane{#2} {
+    \draw [step=0.1, thin] (#1, 0) grid ++(#3, #5);
+    \draw ({#1 + #3/2}, #5) node [below] {\footnotesize #6};
+  }
+}
+
+\begin{slide}{LeNet5}
+  \texttt{INPUT -> [CONV -> POOL]\{2\} -> FC -> OUTPUT}
+\end{slide}
+
+\begin{slide}{LeNet5}
+    \scalebox{0.7}{
+    \begin{tikzpicture}[thick]
+      \path (0, 0.8) coordinate (input) node {
+        \includegraphics[trim={0 0 17cm 0},clip,scale=0.4]{mnist}
+      };
+      \draw (input)+(0, 1.2) node {\footnotesize 28};
+      \draw (input)+(-1.2, 0) node {\footnotesize 28};
+
+      \only<2->{
+        \volume{3.5}{0}{0.5}{3}{3}{32}{28}{28}
+        % \draw [dashed, |->] (0, -2.5) -- ++(3, 0) node [midway, below] {5x5/1};
+      }
+      \only<3->{
+        \volume{5.5}{0}{0.5}{2}{2}{32}{14}{14}
+        % \draw [dashed, ->] (3, -2.5) -- ++(2.5, 0) node [midway, below] {2x2/2};
+      }
+      \only<4->{
+        \volume{7.5}{0}{1}{2}{2}{64}{14}{14}
+        % \draw [dashed, ->] (5.5, -2.5) -- ++(2.5, 0) node [midway, below] {5x5/2};
+      }
+      \only<5->{
+        \volume{9.75}{0}{1}{1.25}{1.25}{64}{7}{7}
+        % \draw [dashed, ->] (8, -2.5) -- ++(2, 0) node [midway, below] {2x2/2};
+      }
+
+      \only<6->{
+        % \draw [dashed, ->] (10, -2.5) -- ++(1.5, 0) node [midway, below] {1024};
+        \begin{scope}[canvas is xz plane at y=0]
+          \foreach \i in {0, ..., 4} {
+            \path (12, {3 - \i * 1.2})
+                  coordinate [draw, circle, inner sep=5pt]
+                  (h\i);% node {\footnotesize $h_\i$};
+          }
+          \draw (12.5, 4.75) node {1024};
+        \end{scope}
+      }
+      \only<7->{
+      % \draw [dashed, ->] (11.5, -2.5) -- ++(1.5, 0) node [midway, below] {10};
+      \begin{scope}[canvas is xz plane at y=0.5]
+        \foreach \i in {0, ..., 2} {
+          \path (14.25, {3.75 - \i * 1.2})
+                coordinate [draw, circle, inner sep=5pt]
+                (y\i) node {\footnotesize \i};
+          \foreach \h in {0, ..., 4} {
+            \draw [->, semithick] (h\h) -- (y\i);
+          }
+        }
+        % \draw (14.5, 5.25) node {10};
+      \end{scope}
+      }
+    \end{tikzpicture}
+    }
+
+    \vspace{1cm}
+    \only<1>{
+      \texttt{\textcolor{red}{INPUT} -> [CONV -> POOL]\{2\} -> FC -> OUTPUT}
+    }
+    \only<2>{
+      \texttt{INPUT -> [\textcolor{red}{CONV} -> POOL]\{2\} -> FC -> OUTPUT}
+    }
+    \only<3>{
+      \texttt{INPUT -> [CONV -> \textcolor{red}{POOL}]\{2\} -> FC -> OUTPUT}
+    }
+    \only<4>{
+      \texttt{INPUT -> [\textcolor{red}{CONV} -> POOL]\{2\} -> FC -> OUTPUT}
+    }
+    \only<5>{
+      \texttt{INPUT -> [CONV -> \textcolor{red}{POOL}]\{2\} -> FC -> OUTPUT}
+    }
+    \only<6>{
+      \texttt{INPUT -> [CONV -> POOL]\{2\} -> \textcolor{red}{FC} -> OUTPUT}
+    }
+    \only<7>{
+      \texttt{INPUT -> [CONV -> POOL]\{2\} -> FC -> \textcolor{red}{OUTPUT}}
+    }
+\end{slide}

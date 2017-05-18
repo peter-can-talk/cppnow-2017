@@ -1,0 +1,268 @@
+% !TEX root = presentation.tex
+% Presentation Preamble
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   BEAMER CLASS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[xcolor={dvipsnames}]{beamer}
+
+\definecolor{llvmblue}{RGB}{60, 66, 80}
+
+\usetheme{default}
+\usecolortheme[named=llvmblue]{structure}
+\setbeamertemplate{sections/subsections in toc}[sections numbered]
+\setbeamertemplate{items}[default]
+\usefonttheme[onlymath]{serif}
+\setbeamertemplate{caption}{\raggedright\insertcaption\par}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% LANGUAGE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage[utf8]{inputenc}
+\usepackage[american]{babel}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 	GENERAL PACKAGES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{textcomp}
+\usepackage{anyfontsize}
+\usepackage{cancel}
+
+\usepackage{ulem}
+\renewcommand{\ULthickness}{.6pt}%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 	MATH
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{amsmath}
+\usepackage{blkarray}
+\usepackage{gensymb}
+\usepackage{relsize}
+\usepackage{cancel}
+\usepackage{amssymb}
+\usepackage{latexsym}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 	DRAWING
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{tikz}
+\usepackage{pgfplots}
+
+\pgfplotsset{compat=1.3}
+\usetikzlibrary{3d}
+\usetikzlibrary{shapes}
+\usetikzlibrary{3d}
+\usepgflibrary{fpu}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 	CODE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{listings}
+
+\definecolor{stringgreen}{RGB}{50,220,15}
+\definecolor{brightred}{RGB}{234, 38, 49}
+
+\lstset{%
+  inputencoding=utf8,
+	basicstyle=\ttfamily\footnotesize,
+	language=C++,
+	aboveskip=3mm,
+	belowskip=3mm,
+	showstringspaces=false,
+	columns=flexible,
+	numbers=none,
+	numberstyle=\tiny\color{red},
+	keywordstyle=\color{magenta},
+	commentstyle=\color{gray},
+	stringstyle=\color{stringgreen},
+  emphstyle=\color{brightred},
+	breaklines=true,
+	breakatwhitespace=true,
+	tabsize=2,
+  escapeinside={@}{@},
+  emph={\#include},
+  alsoletter={\#}
+}
+
+% http://lists.llvm.org/pipermail/llvm-dev/attachments/20120602/58156cce/attachment.tex
+\makeatletter
+\lstdefinelanguage{llvm}{
+  morecomment = [l]{;},
+  morestring=[b]",
+  sensitive = true,
+  classoffset=0,
+  morekeywords={
+    define, declare, global, constant,
+    internal, external, private,
+    linkonce, linkonce_odr, weak, weak_odr, appending,
+    common, extern_weak,
+    thread_local, dllimport, dllexport,
+    hidden, protected, default,
+    except, deplibs,
+    volatile, fastcc, coldcc, cc, ccc,
+    x86_stdcallcc, x86_fastcallcc,
+    ptx_kernel, ptx_device,
+    signext, zeroext, inreg, sret, nounwind, noreturn,
+    nocapture, byval, nest, readnone, readonly, noalias, uwtable,
+    inlinehint, noinline, alwaysinline, optsize, ssp, sspreq,
+    noredzone, noimplicitfloat, naked, alignstack,
+    module, asm, align, tail, to,
+    addrspace, section, alias, sideeffect, c, gc,
+    target, datalayout, triple,
+    blockaddress
+  },
+  classoffset=1,
+  keywordstyle=\color{ProcessBlue},
+  morekeywords={
+    fadd, sub, fsub, mul, fmul,
+    sdiv, udiv, fdiv, srem, urem, frem,
+    and, or, xor,
+    icmp, fcmp,
+    eq, ne, ugt, uge, ult, ule, sgt, sge, slt, sle,
+    oeq, ogt, oge, olt, ole, one, ord, ueq, ugt, uge,
+    ult, ule, une, uno,
+    nuw, nsw, exact, inbounds,
+    phi, call, select, shl, lshr, ashr, va_arg,
+    trunc, zext, sext,
+    fptrunc, fpext, fptoui, fptosi, uitofp, sitofp,
+    ptrtoint, inttoptr, bitcast,
+    ret, br, indirectbr, switch, invoke, unwind, unreachable,
+    malloc, alloca, free, load, store, getelementptr,
+    extractelement, insertelement, shufflevector,
+    extractvalue, insertvalue,
+  },
+  alsoletter={\%},
+  keywordsprefix={\%},
+  escapeinside={{,}}
+}
+\makeatother
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 	CONFIG
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\graphicspath{{figures/}}
+% \addtolength{\parskip}{\baselineskip}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 	BEAMER FOOTER
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\setbeamertemplate{footline}[text line]{%
+  \parbox{\linewidth}{%
+    \vspace*{-15pt}%
+    \scriptsize
+    Peter Goldsborough\hspace{2cm}%
+    {\small\texttt{clang-useful}}\hfill%
+    \insertpagenumber}%
+}
+\setbeamertemplate{navigation symbols}{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 	NEW COMMANDS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\hs}[1]{\hspace{#1}}
+\newcommand{\vs}[1]{\vspace{#1}}
+
+\newcommand{\red}{\color{red}}
+
+\newcommand{\inlineitem}[2]{{\color{orange}#1.} #2 \hspace{0.5cm}}
+
+\newcommand{\textframe}[2]{%
+  \begin{slide}{#1}
+    {
+      \fontsize{48}{48}\selectfont
+      \color{llvmblue}
+      #2
+    }
+  \end{slide}
+}
+
+\newcommand\invisiblesection[1]{%
+  \refstepcounter{section}%
+  \addcontentsline{toc}{section}{\protect\numberline{\thesection}#1}%
+  \sectionmark{#1}
+}
+
+\newcommand{\pitem}{\pause\item}
+
+\newcommand{\frameheader}[1]{{\Large #1}\vspace{0.5cm}}
+
+\newcommand{\random}[1]{\pdfuniformdeviate #1}
+
+\newcommand{\randomcolor}{%
+  \definecolor{randomcolor}{RGB}
+   {
+    \pdfuniformdeviate 256,
+    \pdfuniformdeviate 256,
+    \pdfuniformdeviate 256
+   }%
+}
+
+\newcommand{\randomgray}{%
+  \newcount\gray\relax
+  \gray=\pdfuniformdeviate 256\relax
+  \definecolor{randomgray}{RGB}
+   {
+    \the\gray,
+    \the\gray,
+    \the\gray
+   }%
+}
+
+\newcommand{\numbersquare}[3]{
+  \draw #1 rectangle ++(#2, #2) node [midway, black] {#3};
+}
+
+\newcommand{\colornumbersquare}[4]{
+  \draw [#4] #1 rectangle ++(#2, #2) node [midway] {#3};
+}
+
+\newcommand{\onesquare}[2]{ \numbersquare{#1}{1}{#2} }
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 	NEW ENVIRONMENTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% http://tex.stackexchange.com/questions/78462/labelling-ax-b-under-an-actual-matrix
+\newenvironment{sbmatrix}[1]
+ {\def\mysubscript{#1}\mathop\bgroup\begin{bmatrix}}
+ {\end{bmatrix}\egroup_{\textstyle\mathstrut\mysubscript}}
+
+\newenvironment{spmatrix}[1]
+{\def\mysubscript{#1}\mathop\bgroup\begin{pmatrix}}
+{\end{pmatrix}\egroup_{\textstyle\mathstrut\mysubscript}}
+
+\newenvironment{slide}[1]
+{
+  \centering
+	\section{#1}
+	\begin{frame}
+		\frametitle{#1}
+}
+{
+	\end{frame}
+}
+
+\newenvironment{fslide}[1]
+{
+  \centering
+	\section{#1}
+	\begin{frame}[fragile]
+		\frametitle{#1}
+}
+{
+	\end{frame}
+}

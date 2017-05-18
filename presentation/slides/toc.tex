@@ -1,0 +1,23 @@
+% !TEX root = ../presentation.tex
+% Table of Contents
+
+
+\begin{frame}[fragile]{Table of Members}
+  \begin{lstlisting}[basicstyle=\ttfamily\small]
+    class Talk {
+      public:
+
+      @\only<2->{llvm::LLVM CompilerToolchain;}@
+
+
+      @\only<3->{clang::Clang Frontend;}@
+
+
+      @\only<4->{clang::Tooling Tooling;}@
+
+
+      @\only<6>{std::vector<}\only<5->{clang::Tooling}\only<6>{>} \only<5->{YourTool}\only<6>{s}\only<5->{;}@
+
+    };
+  \end{lstlisting}
+\end{frame}

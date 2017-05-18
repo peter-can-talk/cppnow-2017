@@ -1,0 +1,54 @@
+% !TEX root = ../presentation.tex
+% Background
+
+\begin{slide}{Background}
+  \begin{tikzpicture}[very thick]
+    % TUM
+    \onslide<2->{
+    \path (0, 0)
+          coordinate [draw, circle, white, inner sep=0.4cm] (t)
+          node {\includegraphics[scale=0.16]{tum}};
+    }
+
+    % Google
+    \onslide<3->{
+      \path (t)+(220:3.1cm)
+            coordinate [draw, circle, white, inner sep=0.4cm] (g)
+            node {\includegraphics[scale=0.05]{google}};
+      \onslide<-7>{\draw [->, shorten <= 5pt] (t) to (g);}
+    }
+
+    % Bloomberg
+    \onslide<4->{
+      \path (g)+(295:2.5cm)
+            coordinate [draw, circle, white, inner sep=0.45cm] (b)
+            node {\includegraphics[scale=0.09]{bloomberg}};
+      \onslide<-7>{\draw [->] (g) to (b);}
+    }
+
+    % Facebook
+    \onslide<5->{
+      \path (b)+(2.5, 0)
+            coordinate [draw, circle, white, inner sep=0.45cm] (f)
+            node {\includegraphics[scale=0.0275]{fb}};
+      \onslide<-7>{\draw [->] (b) to (f);}
+    }
+
+    % Mindi
+    \onslide<6->{
+      \path (f)+(60:2.6cm)
+            coordinate [draw, circle, white, inner sep=0.45cm] (m)
+            node {\includegraphics[scale=0.05]{mindi}};
+      \onslide<-7>{\draw [->] (f) to (m);}
+    }
+
+    \onslide<7>{\draw [->, shorten >= 5pt] (m) to (t);}
+    \onslide<8->{
+      \draw (t) -- (b);
+      \draw (t) -- (f);
+      \draw [shorten >= 10pt] (g) -- (m);
+      \draw (g) -- (f);
+      \draw [shorten <= 10pt] (m) -- (b);
+    }
+  \end{tikzpicture}
+\end{slide}
