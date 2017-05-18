@@ -14,16 +14,18 @@ CODE = os.path.join(HERE, os.pardir, 'code')
 CHOICES = [i for i in os.listdir(CODE) if not i.startswith('.')]
 VOTES = [0 for _ in CHOICES]
 
-Entry = collections.namedtuple('Entry', 'rank, name, votes')
+Entry = collections.namedtuple('Entry', 'rank, name, index, votes')
 
 @app.route('/')
 def index():
-    table = [(CHOICES[index], votes) for index, votes in enumerate(VOTES)]
-    table.sort(key=lambda i: i[1], reverse=True)
-    ranked = [Entry(rank + 1, *entry) for rank, entry in enumerate(table)]
+    table = []
+    for index, votes in enumerate(VOTES):
+        table.append((CHOICES[index], index, votes))
+    ranked = [i[0] for i in sorted(table, key=lambda i: i[2], reverse=True)]
+    model = [Entry(ranked.index(entry[0]), *entry) for entry in table]
 
     elapsed = round(time.time() - START_TIME, 2)
-    return flask.render_template('index.html', votes=ranked, elapsed=elapsed)
+    return flask.render_template('index.html', model=model, elapsed=elapsed)
 
 
 @app.route('/vote/<indices>')

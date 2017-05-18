@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>clang-rocks</title>
     <style>
-      th { border-bottom: 1px solid rgba(0, 0, 0, 0.4); }
+      th { border-bottom: 1px solid rgba(0, 0, 0, 0.3); }
       td { padding: 3px 7px; }
     </style>
   </head>
@@ -16,10 +16,10 @@
         <th>Tool</th>
         <th>Votes</th>
       </thead>
-      {% for i in votes %}
+      {% for i in model %}
         <tr>
           <td>{{ i.rank }}</td>
-          <td>{{ i.name }}</td>
+          <td>{{ i.name }} (<strong>{{ i.index }}</strong>)</td>
           <td align="center">{{ i.votes }}</td>
         </tr>
       {% endfor %}
