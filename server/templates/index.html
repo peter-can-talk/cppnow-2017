@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>clang-rocks</title>
+    <style>
+      th { border-bottom: 1px solid rgba(0, 0, 0, 0.4); }
+      td { padding: 3px 7px; }
+    </style>
+  </head>
+  <body>
+    <h1>I ❤️ clang</h1>
+    <table>
+      <thead align="center">
+        <th>Rank</th>
+        <th>Tool</th>
+        <th>Votes</th>
+      </thead>
+      {% for i in votes %}
+        <tr>
+          <td>{{ i.rank }}</td>
+          <td>{{ i.name }}</td>
+          <td align="center">{{ i.votes }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+    <br>
+    <code>Elapsed time: {{ elapsed }}</code>
+  </body>
+</html>

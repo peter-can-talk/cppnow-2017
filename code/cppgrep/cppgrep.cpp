@@ -8,15 +8,14 @@
 #include <clang/Tooling/CommonOptionsParser.h>
 #include <clang/Tooling/CompilationDatabase.h>
 
-
 // Standard includes
 #include <cassert>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <regex>
 #include <string>
 #include <vector>
-
 
 namespace {
 llvm::cl::OptionCategory cppGrepCategory("CppGrep Options");
@@ -74,8 +73,40 @@ llvm::cl::alias memberShortOption("m",
 }  // namespace
 
 
-using Predicate = std::function<bool(CXCursor)>;
+class Filter {
+ public:
+  using Predicate = std::function<bool(CXCursor)>;
 
+  explicit Filter(Predicate&& pattern) : _pattern(std::move(pattern)) {
+  }
+
+  void add(Predicate&& predicate) {
+    _predicates.emplace_back(std::move(predicate));
+  }
+
+  bool matches(CXCursor cursor) const noexcept {
+    if (!_pattern(cursor)) return false;
+    if (_predicates.empty()) return true;
+
+    // clang-format off
+    return std::any_of(_predicates.begin(), _predicates.end(),
+        [cursor](auto& predicate) { return predicate(cursor); });
+    // clang-format on
+  }
+
+ private:
+  Predicate _pattern;
+  std::vector<Predicate> _predicates;
+};
+
+struct Data {
+  using Lines = std::vector<std::string>;
+  Data(Filter&& filter) : filter(std::move(filter)) {
+  }
+
+  Filter filter;
+  Lines lines;
+};
 
 std::string toString(CXString cxString) {
   std::string string = clang_getCString(cxString);
@@ -83,61 +114,49 @@ std::string toString(CXString cxString) {
   return string;
 }
 
-void displayMatch(CXSourceLocation location, CXCursor cursor) {
+void displayMatch(CXSourceLocation location,
+                  CXCursor cursor,
+                  const Data::Lines& lines) {
   CXFile file;
-  unsigned line, column;
-  clang_getSpellingLocation(location, &file, &line, &column, nullptr);
+  unsigned lineNumber, columnNumber;
+  clang_getSpellingLocation(location,
+                            &file,
+                            &lineNumber,
+                            &columnNumber,
+                            nullptr);
+
+  assert(lineNumber - 1 < lines.size());
 
   if (filesOption.size() > 1) {
     std::cout << toString(clang_getFileName(file)) << ':';
   }
 
-  std::cout << line << ':' << column << ": ";
+  std::cout << "\033[1m" << lineNumber << ':' << columnNumber << "\033[0m: ";
 
-  const auto tu = clang_Cursor_getTranslationUnit(cursor);
-  const CXSourceRange range = clang_getCursorExtent(cursor);
-  assert(!clang_Range_isNull(range));
-
-  CXToken* tokens;
-  unsigned numberOfTokens;
-  clang_tokenize(tu, range, &tokens, &numberOfTokens);
-
-  for (unsigned index = 0; index < numberOfTokens; ++index) {
-    const auto tokenLocation = clang_getTokenLocation(tu, tokens[index]);
-    if (clang_equalLocations(tokenLocation, location)) {
-      if (index > 0) {
-        std::cout << toString(clang_getTokenSpelling(tu, tokens[index - 1]))
-                  << ' ';
-      }
-
-      const auto spelling = toString(clang_getTokenSpelling(tu, tokens[index]));
-      std::cout << "\033[91m" << spelling << "\033[0m";
-
-      if (index + 1 < numberOfTokens) {
-        std::cout << ' '
-                  << toString(clang_getTokenSpelling(tu, tokens[index + 1]));
-      }
-
-      std::cout << '\n';
-      break;
+  const auto& line = lines[lineNumber - 1];
+  for (unsigned column = 1; column <= line.length(); ++column) {
+    if (column == columnNumber) {
+      const auto spelling = toString(clang_getCursorSpelling(cursor));
+      std::cout << "\033[1;91m" << spelling << "\033[0m";
+      column += spelling.length() - 1;
+    } else {
+      std::cout << line[column - 1];
     }
   }
 
-  clang_disposeTokens(tu, tokens, numberOfTokens);
+  std::cout << '\n';
 }
 
-CXChildVisitResult grep(CXCursor cursor, CXCursor, CXClientData data) {
+CXChildVisitResult grep(CXCursor cursor, CXCursor, CXClientData clientData) {
   const CXSourceLocation location = clang_getCursorLocation(cursor);
   if (clang_Location_isInSystemHeader(location)) {
     return CXChildVisit_Continue;
   }
 
-  const auto* predicates = reinterpret_cast<std::vector<Predicate>*>(data);
-  for (const auto& predicate : *predicates) {
-    if (!predicate(cursor)) return CXChildVisit_Recurse;
+  const auto* data = reinterpret_cast<Data*>(clientData);
+  if (data->filter.matches(cursor)) {
+    displayMatch(location, cursor, data->lines);
   }
-
-  displayMatch(location, cursor);
 
   return CXChildVisit_Recurse;
 }
@@ -158,7 +177,7 @@ CXTranslationUnit parse(CXIndex index, const std::string& filename) {
   return tu;
 }
 
-Predicate makePatternPredicate() {
+Filter::Predicate makePatternPredicate() {
   auto regexOptions = std::regex::ECMAScript | std::regex::optimize;
   if (caseInsensitiveOption) regexOptions |= std::regex::icase;
 
@@ -170,13 +189,11 @@ Predicate makePatternPredicate() {
   };
 }
 
-std::vector<Predicate> getOptionPredicates() {
-  std::vector<Predicate> predicates;
-
-  predicates.emplace_back(makePatternPredicate());
+Filter makeFilter() {
+  Filter filter(makePatternPredicate());
 
   if (functionOption) {
-    predicates.emplace_back([](auto cursor) {
+    filter.add([](auto cursor) {
       const auto kind = clang_getCursorKind(cursor);
       if (memberOption) return kind == CXCursor_CXXMethod;
       return kind == CXCursor_FunctionDecl || kind == CXCursor_CXXMethod;
@@ -184,7 +201,7 @@ std::vector<Predicate> getOptionPredicates() {
   }
 
   if (variableOption) {
-    predicates.emplace_back([](auto cursor) {
+    filter.add([](auto cursor) {
       const auto kind = clang_getCursorKind(cursor);
       if (memberOption) return kind == CXCursor_FieldDecl;
       return kind == CXCursor_VarDecl || kind == CXCursor_FieldDecl;
@@ -192,41 +209,57 @@ std::vector<Predicate> getOptionPredicates() {
   }
 
   if (parameterOption) {
-    predicates.emplace_back([](auto cursor) {
+    filter.add([](auto cursor) {
       return clang_getCursorKind(cursor) == CXCursor_ParmDecl;
     });
   }
 
   if (memberOption && !variableOption && !parameterOption) {
-    predicates.emplace_back([](auto cursor) {
+    filter.add([](auto cursor) {
       const auto kind = clang_getCursorKind(cursor);
       return kind == CXCursor_FieldDecl || kind == CXCursor_CXXMethod;
     });
   }
 
   if (recordOption) {
-    predicates.emplace_back([](auto cursor) {
+    filter.add([](auto cursor) {
       const auto kind = clang_getCursorKind(cursor);
       return kind == CXCursor_StructDecl || kind == CXCursor_ClassDecl;
     });
   }
 
-  return predicates;
+  return filter;
+}
+
+Data::Lines readLines(const std::string& filename) {
+  Data::Lines lines;
+
+  std::ifstream stream(filename);
+  std::string line;
+  while (std::getline(stream, line)) {
+    lines.emplace_back(line);
+  }
+
+  return lines;
 }
 
 auto main(int argc, const char* argv[]) -> int {
   llvm::cl::HideUnrelatedOptions(cppGrepCategory);
   llvm::cl::ParseCommandLineOptions(argc, argv);
-  auto predicates = getOptionPredicates();
+
+  Data data(makeFilter());
 
   CXIndex index = clang_createIndex(/*excludeDeclarationsFromPCH=*/true,
                                     /*displayDiagnostics=*/true);
-
   for (const auto& filename : filesOption) {
+    data.lines = readLines(filename);
+
     const CXTranslationUnit tu = parse(index, filename);
     if (!tu) break;
+
     auto cursor = clang_getTranslationUnitCursor(tu);
-    clang_visitChildren(cursor, grep, &predicates);
+    clang_visitChildren(cursor, grep, &data);
+
     clang_disposeTranslationUnit(tu);
   }
 }

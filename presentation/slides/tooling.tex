@@ -29,31 +29,50 @@
   \end{lstlisting}
 \end{frame}
 
+\begin{frame}[fragile]{Clang Tooling: libClang (Python)}
+  \pause
+  \begin{lstlisting}[basicstyle=\ttfamily\scriptsize, language=python]
+                  import clang.cindex as clang
+
+                  def walk(cursor):
+                    print(cursor.spelling)
+                    for child in cursor.get_children():
+                      walk(child)
+  \end{lstlisting}
+\end{frame}
+
 \textframe{Clang Tooling}{libTooling}
 
 \begin{slide}{Clang Tooling: libTooling}
-  \onslide<2->{\textbf{Clang Tidy}}
-  \vspace{0.2cm}
+  \onslide<2->{
+    \textbf{Clang Tidy}
 
-  \onslide<5->{\texttt{./clang-tidy -checks="*,my-check" file.cpp}}
+    \vspace{0.2cm}
+
+    \texttt{./clang-tidy -checks="*,my-check" file.cpp}
+  }
 
   \vspace{0.9cm}
 
+  \onslide<3->{
+    \textbf{Clang Plugin}
 
-  \onslide<3->{\textbf{Clang Plugin}}
-  \vspace{0.2cm}
+    \vspace{0.2cm}
 
-  \onslide<6->{
-    \texttt{./clang++ -Xclang load -Xclang my-check.so \textbackslash\\
-          -Xclang -add-plugin -Xclang my-check file.cpp}
+      \texttt{./clang++ -Xclang load -Xclang my-check.so \textbackslash\\
+            -Xclang -add-plugin -Xclang my-check file.cpp}
   }
 
   \vspace{0.7cm}
 
-  \onslide<4->{\textbf{Clang Tool}}
-  \vspace{0.2cm}
+  \onslide<4->{
+    \textbf{Clang Tool}
 
-  \onslide<7->{\texttt{./my-check file.cpp}}
+    \vspace{0.2cm}
+
+    \texttt{./my-check file.cpp}
+  }
+
 \end{slide}
 
 \begin{frame}[fragile]{Clang Tooling: libTooling}

@@ -2,9 +2,7 @@
 
 Notes on modifications:
 
-0. Picture of god/jesus (giving power to people)
-1. Add TF to projects
-3. Clangd
-4. First few slides should rather be 'compiler' than LLVM
-5. LLVM -> Show files (`.[ch]`, `.ll, .bc`, `exe`)
-2. Mention LTO/Install-Time Optimization
+- Picture of god/jesus (giving power to people)
+- Clangd
+- Picture of either shaman/conjuring up stuff or throwing dragon in cauldron
+- Definitely show more of the code (lexer -> Lexer.h, Sema.h, TemplateDeduction.h) and Doxygen (for Stmt, Decl, Type)
