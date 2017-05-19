@@ -1,6 +1,6 @@
-TARGET := minus-tool2
+TARGET := minus-tool
 HEADERS := -isystem /llvm/include/
-WARNINGS := -Wall -Wextra -pedantic
+WARNINGS := -Wall -Wextra -pedantic -Wno-unused-parameter
 CXXFLAGS := $(WARNINGS) -std=c++14 -fno-exceptions -fno-rtti -O3 -Os
 LDFLAGS := `llvm-config --ldflags`
 
@@ -25,7 +25,7 @@ CLANG_LIBS := \
 
 LIBS := $(CLANG_LIBS) `llvm-config --libs --system-libs`
 
-all: minus-tool2
+all: minus-tool
 
 .phony: clean
 .phony: run
@@ -33,5 +33,5 @@ all: minus-tool2
 clean:
 	rm $(TARGET) || echo -n ""
 
-minus-tool2: $(TARGET).cpp
+minus-tool: $(TARGET).cpp
 	$(CXX) $(HEADERS) $(LDFLAGS) $(CXXFLAGS) $(TARGET).cpp $(LIBS) -o $(TARGET)

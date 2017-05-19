@@ -18,7 +18,6 @@
 #include "llvm/Support/raw_ostream.h"
 
 // Standard includes
-#include <cassert>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -27,14 +26,12 @@ namespace MinusTool {
 
 class FixItRewriterOptions : public clang::FixItOptions {
  public:
-  using super = clang::FixItOptions;
-
   /// Constructor.
   ///
   /// The \p RewriteSuffix is the option from the command line.
-  FixItRewriterOptions(const std::string& RewriteSuffix)
+  explicit FixItRewriterOptions(const std::string& RewriteSuffix)
   : RewriteSuffix(RewriteSuffix) {
-    super::InPlace = false;
+    clang::FixItOptions::InPlace = false;
   }
 
   /// For a file to be rewritten, returns the (possibly) new filename.
@@ -42,7 +39,11 @@ class FixItRewriterOptions : public clang::FixItOptions {
   /// If the \c RewriteSuffix is empty, returns the \p Filename, causing
   /// in-place rewriting. If it is not empty, the \p Filename with that suffix
   /// is returned.
-  std::string RewriteFilename(const std::string& Filename, int& fd) override {
+  std::string
+  RewriteFilename(const std::string& Filename, int& FileDescriptor) override {
+    // Don't need the file descriptor.
+    FileDescriptor = -1;
+
     llvm::errs() << "Rewriting FixIts ";
 
     if (RewriteSuffix.empty()) {
@@ -71,24 +72,21 @@ class MatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
   /// \p DoRewrite and \p RewriteSuffix are the command line options passed
   /// to the tool.
   MatchHandler(bool DoRewrite, const std::string& RewriteSuffix)
-  : FixItOptions(RewriteSuffix), DoRewrite(DoRewrite) {
-  }
+  : FixItOptions(RewriteSuffix), DoRewrite(DoRewrite) {}
 
   /// Runs the MatchHandler's action.
   ///
   /// Emits a diagnostic for each matched expression, optionally rewriting the
   /// file in-place or to another file, depending on the command line options.
   void run(const MatchResult& Result) {
-    auto& Context = *Result.Context;
-
     const auto& Op = Result.Nodes.getNodeAs<clang::BinaryOperator>("op");
-    assert(Op != nullptr);
 
     const auto StartLocation = Op->getOperatorLoc();
     const auto EndLocation = StartLocation.getLocWithOffset(+1);
     const clang::SourceRange SourceRange(StartLocation, EndLocation);
     const auto FixIt = clang::FixItHint::CreateReplacement(SourceRange, "-");
 
+    auto& Context = *Result.Context;
     auto& DiagnosticsEngine = Context.getDiagnostics();
 
     // The FixItRewriter is quite a heavy object, so let's
@@ -123,12 +121,6 @@ class MatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
                                                Context.getLangOpts(),
                                                &FixItOptions);
 
-    // Note: it would make more sense to just create a raw pointer and have the
-    // DiagnosticEngine own it. However, the FixItRewriter stores a pointer to
-    // the client of the DiagnosticsEngine when it gets constructed with it.
-    // If we then set the rewriter to be the client of the engine, the old
-    // client gets destroyed, leading to happy segfaults when the rewriter
-    // handles a diagnostic.
     DiagnosticsEngine.setClient(Rewriter.get(), /*ShouldOwnClient=*/false);
 
     return Rewriter;
@@ -185,8 +177,7 @@ class Action : public clang::ASTFrontendAction {
 
   /// Constructor, taking the \p RewriteOption and \p RewriteSuffixOption.
   Action(bool DoRewrite, const std::string& RewriteSuffix)
-  : DoRewrite(DoRewrite), RewriteSuffix(RewriteSuffix) {
-  }
+  : DoRewrite(DoRewrite), RewriteSuffix(RewriteSuffix) {}
 
   /// Creates the Consumer instance, forwarding the command line options.
   ASTConsumerPointer CreateASTConsumer(clang::CompilerInstance& Compiler,
