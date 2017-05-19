@@ -23,47 +23,55 @@
 #include <vector>
 
 namespace PointerFinder {
+
+/// Callback class for matches on the AST.
 class MatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
  public:
   using MatchResult = clang::ast_matchers::MatchFinder::MatchResult;
 
-  explicit MatchHandler(const clang::ASTContext& Context)
-  : Context(Context), SourceManager(Context.getSourceManager()) {
-  }
-
+  /// Handles a match result for a pointer variable.
+  ///
+  /// Given a matched `DeclaratorDecl` (i.e. `VarDecl` or `FieldDecl`) with
+  /// pointer type, verifies that if the variable is named, its name begins with
+  /// a 'p_'. Otherwise emits a diagnostic and FixItHint.
   void run(const MatchResult& Result) {
     const auto* Decl = Result.Nodes.getNodeAs<clang::DeclaratorDecl>("decl");
-    assert(Decl != nullptr);
 
     const llvm::StringRef Name = Decl->getName();
 
+    /// The declaration may be unnamed (like `int*;`), so skip those.
     if (Name.empty() || Name.startswith("p_")) return;
 
-    auto& Diagnostics = Context.getDiagnostics();
-    const auto ID =
+    clang::DiagnosticsEngine& Diagnostics = Result.Context->getDiagnostics();
+    const unsigned ID =
         Diagnostics.getCustomDiagID(clang::DiagnosticsEngine::Warning,
                                     "pointer variable '%0' should "
                                     "have a 'p_' prefix");
-
     const auto FixIt =
         clang::FixItHint::CreateInsertion(Decl->getLocation(), "p_");
 
-    auto Builder = Diagnostics.Report(Decl->getLocation(), ID);
+    clang::DiagnosticBuilder Builder =
+        Diagnostics.Report(Decl->getLocation(), ID);
     Builder.AddString(Name);
     Builder.AddFixItHint(FixIt);
   }
-
-  const clang::ASTContext& Context;
-  const clang::SourceManager& SourceManager;
 };
 
+/// Dispatches a a `MatchFinder` to look for pointer variables.
 class Consumer : public clang::ASTConsumer {
  public:
+  /// Registers a matcher on pointers and dispatches it on the AST.
   void HandleTranslationUnit(clang::ASTContext& Context) override {
     using namespace clang::ast_matchers;
 
     MatchFinder Finder;
-    MatchHandler Handler(Context);
+    MatchHandler Handler;
+
+    // We want to match variables or fields, i.e. both `DeclaratorDecl`s, that
+    // are pointers. We want to skip variables in system headers of course. Note
+    // that while `FunctionDecl`s are also `DeclaratorDecl`s, they will never
+    // have pointer type and thus will not be matched. Function *pointers* will
+    // still be matched, however.
 
     // clang-format off
       const auto Matcher =
@@ -78,6 +86,7 @@ class Consumer : public clang::ASTConsumer {
   }
 };
 
+/// Creates an `ASTConsumer` and logs begin and end of file processing.
 class Action : public clang::ASTFrontendAction {
  public:
   using ASTConsumerPointer = std::unique_ptr<clang::ASTConsumer>;
@@ -89,7 +98,7 @@ class Action : public clang::ASTFrontendAction {
 
   bool BeginSourceFileAction(clang::CompilerInstance& Compiler,
                              llvm::StringRef Filename) override {
-    llvm::outs() << "Processing file " << Filename << " ...\n";
+    llvm::outs() << "Processing file " << Filename << '\n';
     return true;
   }
 
