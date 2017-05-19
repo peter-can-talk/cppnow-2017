@@ -5,6 +5,8 @@
 #include <clang/ASTMatchers/ASTMatchers.h>
 #include <clang/Analysis/CFG.h>
 #include <clang/Basic/Diagnostic.h>
+#include <clang/Basic/LangOptions.h>
+#include <clang/Frontend/CompilerInstance.h>
 #include <clang/Frontend/FrontendAction.h>
 #include <clang/Tooling/CommonOptionsParser.h>
 #include <clang/Tooling/Tooling.h>
@@ -14,37 +16,30 @@
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/raw_ostream.h>
 
-// Standard includes
-#include <cassert>
-
 namespace McCabe {
 
 class MatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
  public:
   using MatchResult = clang::ast_matchers::MatchFinder::MatchResult;
 
-  explicit MatchHandler(unsigned Threshold) : Threshold(Threshold) {
-  }
+  explicit MatchHandler(unsigned Threshold) : Threshold(Threshold) {}
 
   void run(const MatchResult& Result) {
-    static const auto IntegerType =
-        clang::DiagnosticsEngine::ArgumentKind::ak_uint;
-
     const auto* Function = Result.Nodes.getNodeAs<clang::FunctionDecl>("fn");
-    assert(Function != nullptr);
-
     const auto CFG = clang::CFG::buildCFG(Function,
                                           Function->getBody(),
                                           Result.Context,
                                           clang::CFG::BuildOptions());
 
-    const unsigned numberOfNodes = CFG->size() - 2;
+    // -1 for entry and -1 for exit block.
+    const int numberOfNodes = CFG->size() - 2;
     int numberOfEdges = -2;
     for (const auto* Block : *CFG) {
       numberOfEdges += Block->succ_size();
     }
 
-    const unsigned Complexity = numberOfEdges - numberOfNodes + 2;
+    // 2 * 1 = 2 * numberOfComponents.
+    const unsigned Complexity = numberOfEdges - numberOfNodes + (2 * 1);
     if (Complexity <= Threshold) return;
 
     auto& Diagnostics = Result.Context->getDiagnostics();
@@ -54,7 +49,8 @@ class MatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
 
     auto Builder = Diagnostics.Report(Function->getLocation(), ID);
     Builder.AddString(Function->getQualifiedNameAsString());
-    Builder.AddTaggedVal(Complexity, IntegerType);
+    Builder.AddTaggedVal(Complexity,
+                         clang::DiagnosticsEngine::ArgumentKind::ak_uint);
   }
 
  private:
@@ -83,12 +79,28 @@ class Action : public clang::ASTFrontendAction {
  public:
   using ASTConsumerPointer = std::unique_ptr<clang::ASTConsumer>;
 
-  explicit Action(unsigned Threshold) : Threshold(Threshold) {
-  }
+  explicit Action(unsigned Threshold) : Threshold(Threshold) {}
 
   ASTConsumerPointer
   CreateASTConsumer(clang::CompilerInstance&, llvm::StringRef) override {
     return std::make_unique<Consumer>(Threshold);
+  }
+
+  bool BeginSourceFileAction(clang::CompilerInstance& Compiler,
+                             llvm::StringRef Filename) override {
+    const auto& Language = Compiler.getLangOpts();
+
+    // clang-format off
+    llvm::outs() << "Processing '" << Filename
+                 << "' (Signed overflow: " << Language.isSignedOverflowDefined()
+                 << ")\n";
+    // clang-format on
+
+    return true;
+  }
+
+  void EndSourceFileAction() override {
+    llvm::outs() << "\033[1mDone \033[91m<3\033[0m" << '\n';
   }
 
  private:
