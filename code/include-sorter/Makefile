@@ -1,6 +1,6 @@
 TARGET := include-sorter
 HEADERS := -isystem /llvm/include/
-WARNINGS := -Wall -Wextra -pedantic
+WARNINGS := -Wall -Wextra -pedantic -Wno-unused-parameter
 CXXFLAGS := $(WARNINGS) -std=c++1z -fno-exceptions -fno-rtti -O3 -Os
 LDFLAGS := `llvm-config --ldflags`
 

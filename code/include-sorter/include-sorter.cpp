@@ -1,4 +1,4 @@
-// Clang includes
+// Clang Includes
 #include <clang/AST/ASTConsumer.h>
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/Expr.h>
@@ -16,155 +16,202 @@
 #include <clang/Tooling/CommonOptionsParser.h>
 #include <clang/Tooling/Tooling.h>
 
-// LLVM includes
+// LLVM Includes
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/raw_ostream.h>
 
-// Standard includes
-#include <cassert>
+// Standard Includes
 #include <memory>
 #include <string>
 #include <type_traits>
 
 namespace IncludeSorter {
 
+/// Represents an include in source code.
 struct Include {
-  Include(const std::string& filename_, bool angled_)
-  : filename(filename_), angled(angled_) {
-  }
+  Include(const std::string& Filename, bool Angled)
+  : Filename(Filename), Angled(Angled) {}
 
-  std::string filename;
-  bool angled;
+  /// The name of the included file.
+  std::string Filename;
+
+  /// Wether the file was included with angle brackets.
+  bool Angled;
 };
 
 namespace {
+
+/// Takes a vector of includes and sorts them lexicographically, optionally in
+/// reverse order.
 std::string
-sortIncludes(llvm::SmallVectorImpl<Include>& includes, bool reverse) {
-  std::sort(includes.begin(), includes.end(), [=](auto& first, auto& second) {
-    return reverse ? (first.filename > second.filename)
-                   : (first.filename < second.filename);
+sortIncludes(llvm::SmallVectorImpl<Include>& Includes, bool Reverse) {
+  /// Sort the includes in-place first.
+  std::sort(Includes.begin(), Includes.end(), [=](auto& first, auto& second) {
+    return Reverse ? (first.Filename > second.Filename)
+                   : (first.Filename < second.Filename);
   });
 
-  std::string joined;
-  joined.reserve(includes.size() * 32);
-  for (auto include = includes.begin(); include != includes.end();) {
-    const auto left = include->angled ? "<" : "\"";
-    const auto right = include->angled ? ">" : "\"";
-    joined +=
-        (llvm::Twine("#include ") + left + include->filename + right).str();
-    if (++include != includes.end()) joined += '\n';
+  /// Join the includes back together.
+  std::string JoinedLines;
+  JoinedLines.reserve(Includes.size() * 39);  /// 39 = estimate of average line
+
+  for (auto Include = Includes.begin(); Include != Includes.end();) {
+    const auto left = Include->Angled ? "<" : "\"";
+    const auto right = Include->Angled ? ">" : "\"";
+    JoinedLines +=
+        (llvm::Twine("#include ") + left + Include->Filename + right).str();
+    if (++Include != Includes.end()) JoinedLines += '\n';
   }
 
-  return joined;
+  return JoinedLines;
 }
 }  // namespace
 
+/// Captures #include directives and sorts them after every block.
+///
+/// The algorithm proceeds by collecting all included files into a vector and
+/// whenever the distance between two includes is more than one line, the files
+/// picked up until then are sorted and the source code rewritten.
 class PreprocessorCallback : public clang::PPCallbacks {
  public:
-  explicit PreprocessorCallback(clang::Rewriter& rewriter, bool reverse)
-  : _sourceManager(rewriter.getSourceMgr())
-  , _rewriter(rewriter)
-  , _reverse(reverse) {
-  }
+  /// Constructor.
+  ///
+  /// \param Rewriter The object to rewrite the source code
+  /// \param Reverse Whether to sort includes in reverse.
+  explicit PreprocessorCallback(clang::Rewriter& Rewriter, bool Reverse)
+  : SourceManager(Rewriter.getSourceMgr())
+  , Rewriter(Rewriter)
+  , Reverse(Reverse) {}
 
-  void EndOfMainFile() override {
-    _sortCurrent();
-  }
-
-  void InclusionDirective(clang::SourceLocation hashLocation,
+  /// Collects the included file and possibly performs a sorting.
+  void InclusionDirective(clang::SourceLocation HashLocation,
                           const clang::Token&,
-                          llvm::StringRef filename,
-                          bool angled,
-                          clang::CharSourceRange range,
+                          llvm::StringRef Filename,
+                          bool Angled,
+                          clang::CharSourceRange Range,
                           const clang::FileEntry*,
                           llvm::StringRef,
                           llvm::StringRef,
                           const clang::Module*) override {
-    if (!_sourceManager.isInMainFile(hashLocation)) return;
-    const auto[fileID, offset] = _sourceManager.getDecomposedLoc(hashLocation);
+    if (!SourceManager.isInMainFile(HashLocation)) return;
 
-    bool invalid = false;
-    const unsigned lineNumber =
-        _sourceManager.getLineNumber(fileID, offset, &invalid);
-    assert(!invalid && "Error getting line number");
+    // Need to find the line number.
+    const auto[FileID, Offset] = SourceManager.getDecomposedLoc(HashLocation);
 
-    if (!_includes.empty() && lineNumber > _lastLineNumber + 1) {
-      _sortCurrent();
+    bool Invalid = false;
+    const unsigned LineNumber =
+        SourceManager.getLineNumber(FileID, Offset, &Invalid);
+    assert(!Invalid && "Error retrieving line number");
+
+    // Whenever the distance between lines is more than one, we have a "block",
+    // so sort this block.
+    if (!Includes.empty() && LineNumber > LastLineNumber + 1) {
+      SortCurrent();
     }
 
-    if (_includes.empty()) _firstLocation = hashLocation;
-    _includes.emplace_back(filename, angled);
-    _lastLineNumber = lineNumber;
-    _lastLocation = range.getEnd();
+    if (Includes.empty()) FirstLocation = HashLocation;
+    Includes.emplace_back(Filename, Angled);
+    LastLineNumber = LineNumber;
+    LastLocation = Range.getEnd();
+  }
+
+  /// Sort the final chunk of lines.
+  void EndOfMainFile() override {
+    if (!Includes.empty()) SortCurrent();
   }
 
  private:
-  void _sortCurrent() {
-    const auto joined = sortIncludes(_includes, _reverse);
-    clang::SourceRange range(_firstLocation, _lastLocation);
-    _rewriter.ReplaceText(range, joined);
-    _includes.clear();
+  /// Sorts the current includes, rewrites the source code and clears the state.
+  void SortCurrent() {
+    const std::string JoinedLines = sortIncludes(Includes, Reverse);
+    clang::SourceRange Range(FirstLocation, LastLocation);
+    Rewriter.ReplaceText(Range, JoinedLines);
+    Includes.clear();
   }
 
-  clang::SourceLocation _firstLocation;
-  clang::SourceLocation _lastLocation;
-  unsigned _lastLineNumber;
+  /// The current block of includes.
+  llvm::SmallVector<Include, 16> Includes;
 
-  const clang::SourceManager& _sourceManager;
-  clang::Rewriter& _rewriter;
-  bool _reverse;
+  /// The first location of the current block.
+  clang::SourceLocation FirstLocation;
 
-  llvm::SmallVector<Include, 8> _includes;
+  /// The last location of the current block.
+  clang::SourceLocation LastLocation;
+
+  /// The line number of the last location of the current block.
+  unsigned LastLineNumber;
+
+  /// The `SourceManager` to rewrite text.
+  const clang::SourceManager& SourceManager;
+
+  /// The `Rewriter` to rewrite text.
+  clang::Rewriter& Rewriter;
+
+  /// Whether to sort in reverse.
+  bool Reverse;
 };
 
+/// The action that registers the preprocessor callbacks.
+///
+/// Note that we can skip the consumer in this case.
 class Action : public clang::PreprocessOnlyAction {
  public:
-  explicit Action(bool reverse) : _reverse(reverse) {
-  }
+  /// Constructor.
+  ///
+  /// \param Reverse Whether to sort in reverse
+  explicit Action(bool Reverse) : Reverse(Reverse) {}
 
-  bool BeginInvocation(clang::CompilerInstance& compiler) override {
-    _rewriter.setSourceMgr(compiler.getSourceManager(), compiler.getLangOpts());
+  /// Called before any file is even touched. Allows us to register a rewriter.
+  bool BeginInvocation(clang::CompilerInstance& Compiler) override {
+    Rewriter.setSourceMgr(Compiler.getSourceManager(), Compiler.getLangOpts());
     return true;
   }
 
-  bool BeginSourceFileAction(clang::CompilerInstance& compiler,
-                             llvm::StringRef) override {
-    auto hooks = std::make_unique<PreprocessorCallback>(_rewriter, _reverse);
-    compiler.getPreprocessor().addPPCallbacks(std::move(hooks));
+  /// Adds our preprocessor callback to the compiler instance.
+  bool BeginSourceFileAction(clang::CompilerInstance& Compiler,
+                             llvm::StringRef Filename) override {
+    auto hooks = std::make_unique<PreprocessorCallback>(Rewriter, Reverse);
+    Compiler.getPreprocessor().addPPCallbacks(std::move(hooks));
     return true;
   }
 
+  /// Writes the rewritten source code back out to disk.
   void EndSourceFileAction() override {
-    const auto fileID = _rewriter.getSourceMgr().getMainFileID();
-    _rewriter.getEditBuffer(fileID).write(llvm::outs());
+    const auto FileID = Rewriter.getSourceMgr().getMainFileID();
+    Rewriter.getEditBuffer(FileID).write(llvm::outs());
   }
 
  private:
-  clang::Rewriter _rewriter;
-  bool _reverse;
+  /// The rewriter to rewrite source code. Forwarded to the callback.
+  clang::Rewriter Rewriter;
+
+  /// Whether to sort in reverse order. Forwarded to the callback.
+  bool Reverse;
 };
 }  // namespace IncludeSorter
 
-
 namespace {
 llvm::cl::OptionCategory includeSorterCategory("minus-tool options");
-
 llvm::cl::extrahelp includeSorterCategoryHelp(R"(
-  Sorts your includes alphabetically.
+  Sorts your Includes alphabetically.
 )");
 
-llvm::cl::opt<bool> reverseOption("reverse",
+llvm::cl::opt<bool> ReverseOption("reverse",
                                   llvm::cl::desc("Sort in reversed order"),
                                   llvm::cl::cat(includeSorterCategory));
+llvm::cl::alias
+    ReverseShortOption("r",
+                       llvm::cl::desc("Alias for the -reverse option"),
+                       llvm::cl::aliasopt(ReverseOption));
 }  // namespace
 
-/// A custom \c FrontendActionFactory so that we can pass the options
+/// A custom `FrontendActionFactory` so that we can pass the options
 /// to the constructor of the tool.
 struct ToolFactory : public clang::tooling::FrontendActionFactory {
   clang::FrontendAction* create() override {
-    return new IncludeSorter::Action(reverseOption);
+    return new IncludeSorter::Action(ReverseOption);
   }
 };
 
