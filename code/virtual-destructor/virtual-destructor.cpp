@@ -29,7 +29,7 @@ class MatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
 
     // Insert the new name of the base class or return if we've seen it already.
     const std::string BaseName = Base->getQualifiedNameAsString();
-    if (auto[_, AlreadySeen] = BaseNames.insert(BaseName); AlreadySeen) {
+    if (auto[_, Success] = BaseNames.insert(BaseName); !Success) {
       return;
     }
 
@@ -78,6 +78,7 @@ class Consumer : public clang::ASTConsumer {
     // clang-format off
     const auto Matcher =
         cxxRecordDecl(
+          isExpansionInMainFile(),
           isDerivedFrom(
             cxxRecordDecl(
               has(cxxDestructorDecl(

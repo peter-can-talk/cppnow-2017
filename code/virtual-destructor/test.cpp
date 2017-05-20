@@ -1,11 +1,17 @@
+#include <string>
+
 namespace X {
-class Base {
- public:
-  ~Base() {}
+struct BaseA {
+  ~BaseA() {}
+};
+
+struct BaseB {
+  std::string s;
 };
 }  // namespace X
 
 namespace Y {
-class DerivedA : public X::Base {};
-class DerivedB : public X::Base {};
+struct DerivedA : public X::BaseA {};
+struct DerivedB : public X::BaseA {};
+struct DerivedC : public X::BaseB {};
 }  // namespace Y
