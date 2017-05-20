@@ -9,9 +9,22 @@ import flask
 app = flask.Flask(__name__)
 
 START_TIME = time.time()
-HERE = os.path.dirname(os.path.realpath(__file__))
-CODE = os.path.join(HERE, os.pardir, 'code')
-CHOICES = [i for i in os.listdir(CODE) if not i.startswith('.')]
+# HERE = os.path.dirname(os.path.realpath(__file__))
+# CODE = os.path.join(HERE, os.pardir, 'code')
+# CHOICES = [i for i in os.listdir(CODE) if not i.startswith('.')]
+CHOICES = ['ast-dump',
+           'cppgrep',
+           'dict-check',
+           'include-sorter',
+           'minus-tool',
+           'use-override',
+           'virtual-destructor',
+           'clang-variables',
+           'cppgrep-py',
+           'enable-if',
+           'mccabe',
+           'pointer-finder',
+           'using-vs-typedef']
 VOTES = [0 for _ in CHOICES]
 
 Entry = collections.namedtuple('Entry', 'rank, name, index, votes')
@@ -22,7 +35,7 @@ def index():
     for index, votes in enumerate(VOTES):
         table.append((CHOICES[index], index, votes))
     ranked = [i[0] for i in sorted(table, key=lambda i: i[2], reverse=True)]
-    model = [Entry(ranked.index(entry[0]), *entry) for entry in table]
+    model = [Entry(ranked.index(entry[0]) + 1, *entry) for entry in table]
 
     elapsed = round(time.time() - START_TIME, 2)
     return flask.render_template('index.html', model=model, elapsed=elapsed)
@@ -46,7 +59,7 @@ def vote(indices):
 
 
 def main():
-    app.run('localhost', debug=True)
+    app.run('0.0.0.0', port=80, debug=True)
 
 if __name__ == '__main__':
     main()

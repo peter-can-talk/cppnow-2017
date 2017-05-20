@@ -1,200 +1,200 @@
 % !TEX root = ../presentation.tex
 % LLVM
 
-% \begin{slide}{}
-%   \only<1>{\vspace{-0.18cm}}
-%   \only<7->{\vspace{0.6cm}}
-%   {
-%     \color{llvmblue}\fontsize{70}{70}\selectfont
-%     \hspace{0.5cm}LLVM
-%   }
-%   \vspace{0.9cm}
-%
-%   {
-%     \fontsize{16}{16}\selectfont
-%     \color{Red}
-%     \only<2-5>{
-%       \onslide<2->{Low}\hspace{0.2cm} %
-%       \onslide<3->{Level}\hspace{0.2cm} %
-%       \onslide<4->{Virtual}\hspace{0.2cm} %
-%       \onslide<5>{Machine}
-%     }
-%     \only<6->{
-%       \sout{
-%         \onslide<2->{Low}\hspace{0.2cm} %
-%         \onslide<3->{Level}\hspace{0.2cm} %
-%         \onslide<4->{Virtual}\hspace{0.2cm} %
-%         \onslide<5->{Machine}
-%       }
-%     }
-%   }
-%
-%   \vspace{1cm}
-%
-%   \only<7>{
-%     \huge
-%     \color{llvmblue}
-%     lldb\hs{0.3cm}
-%     opt\hs{0.5cm}
-%     lld\hs{0.5cm}
-%     lljvm\hs{0.3cm}
-%   }
-%
-%   \only<8->{
-%     \includegraphics[scale=0.045]{dragon}\hspace{0.7cm}%
-%     \includegraphics[scale=0.02]{swift}\hspace{0.9cm}%
-%     \includegraphics[scale=0.02]{rust}\hspace{0.9cm}%
-%     \includegraphics[scale=0.068]{tf}
-%   }
-%
-% \end{slide}
-%
-% \begin{slide}{Compilers}
-%   \begin{tikzpicture}[thick]
-%     \tikzset{box/.style={
-%       draw,
-%       rectangle,
-%       rounded corners=1pt,
-%       inner sep=1cm}
-%     }
-%
-%     % Frontend
-%     \onslide<2-4>{
-%       \path (0, 0) coordinate [box] (front) node {Frontend};
-%     }
-%
-%     % Optimizer
-%     \onslide<3->{
-%       \path (4, 0) coordinate [box] (opt) node {Optimizer};
-%       \draw [->] (front) -- (opt);
-%     }
-%
-%     % Backend
-%     \onslide<4-5>{
-%       \path (8, 0) coordinate [box] (back) node {Backend};
-%       \draw [->] (opt) -- (back);
-%     }
-%
-%     % Many Frontends
-%     \onslide<5->{
-%       \path (0,  2.5) coordinate [box] (cpp) node {C\texttt{++}};
-%       \path (0,  0) coordinate [box] (go) node {Go};
-%       \path (0, -2.5) coordinate [box] (rust) node {Rust};
-%
-%       % Edges
-%       \draw [->, bend left] (cpp) to (opt);
-%       \draw [->] (go) -- (opt);
-%       \draw [->, bend right] (rust) to (opt);
-%     }
-%
-%     % Many Backends
-%     \onslide<6->{
-%       \path (8, +2.5) coordinate [box] (x86) node {x86};
-%       \path (8,  0) coordinate [box] (arm) node {ARM};
-%       \path (8, -2.5) coordinate [box] (riscv) node {RISC-V};
-%
-%       % Edges
-%       \draw [->, bend left] (opt) to (x86);
-%       \draw [->] (opt) -- (arm);
-%       \draw [->, bend right] (opt) to (riscv);
-%
-%     }
-%   \end{tikzpicture}
-% \end{slide}
-%
-% \begin{frame}[fragile]{LLVM}
-%   \begin{center}
-%   \begin{tikzpicture}[thick]
-%     \tikzset{box/.style={
-%       draw,
-%       rectangle,
-%       rounded corners=1pt,
-%       inner sep=0.9cm}
-%     }
-%     \tikzset{pass/.style={
-%       draw,
-%       rectangle,
-%       rounded corners=1pt,
-%       text height=1.3cm,
-%       text width=0.25cm}
-%     }
-%     \tikzset{bigbox/.style={box, inner sep=1cm}}
-%
-%     %%%%%%%%%%
-%     % Frontend
-%     %%%%%%%%%%
-%     \onslide<1>{
-%       \path (0, 0) coordinate [bigbox] (front) node {Frontend};
-%     }
-%
-%     \onslide<2->{
-%       \path (0, +1.1) coordinate [box] (lex) node {Lexer};
-%       \path (0, -1.1) coordinate [box] (parser) node {Parser};
-%       \draw (parser)+(0, -2) node {\texttt{.c,.h}};
-%
-%       \onslide<-5>{
-%         \draw (parser)+(0, -1.5) node {\textbf{Frontend}};
-%       }
-%       \onslide<6->{
-%         \draw (parser)+(0, -1.5) node {\color{Red}\textbf{Frontend}};
-%       }
-%       \draw [->] (lex) -- (parser);
-%     }
-%
-%     %%%%%%%%%%%
-%     % Optimizer
-%     %%%%%%%%%%%
-%     \onslide<-2>{
-%       \path (4, 0) coordinate [bigbox] (opt) node {Optimizer};
-%     }
-%     \onslide<1>{\draw [->] (front) -- (opt);}
-%     \onslide<2>{\draw [->] (parser) -- (opt);}
-%
-%     \onslide<3->{
-%       % Pass blocks and labels
-%       \foreach \i/\label/\y %
-%         in {0/constprop/-1, 1/licm/+1, 2/inline/-1, 3/loop-unroll/+1} {
-%         \draw ({2.75+\i*0.75}, 0) coordinate [pass] (opt\i);
-%         \onslide<4->{
-%           \draw [dotted, ->]
-%                 (opt\i) -- ({2.75+\i*0.75}, {\y * 1.2})
-%                 node [pos=1.75] {\label};
-%         }
-%       }
-%
-%       % Edges between passes
-%       \draw [->] (parser) -- (opt0);
-%       \foreach \i/\j in {0/1, 1/2, 2/3} {
-%         \draw (opt\i) --  (opt\j);
-%       }
-%
-%       % Optimizer Label
-%       \draw (opt)+(0, -2.61) coordinate (opt-label) node {\textbf{Optimizer}};
-%       \draw (opt-label)+(0, -0.5) node {\texttt{.ll,.bc}};
-%     }
-%
-%     %%%%%%%%%
-%     % Backend
-%     %%%%%%%%%
-%     \onslide<-4>{\path (8, 0) coordinate [bigbox] (back) node {Backend};}
-%     \onslide<-2>{\draw [->] (opt) -- (back);}
-%     \onslide<-4>{\draw [->] (opt3) -- (back);}
-%
-%
-%     \onslide<5->{
-%       \path (8, +1.1) coordinate [box] (codegen) node {CodeGen};
-%       \path (8, -1.1) coordinate [box] (md-opt)
-%             node [align=center] {MD\\Optimizer};
-%       \draw (md-opt)+(0, -1.5) node {\textbf{Backend}};
-%       \draw (md-opt)+(0, -2) node {\texttt{.o,.S}};
-%
-%       % Edges
-%       \draw [->] (opt3) -- (md-opt);
-%       \draw [->] (md-opt) -- (codegen);
-%     }
-%   \end{tikzpicture}
-%   \end{center}
-% \end{frame}
+\begin{slide}{}
+  \only<1>{\vspace{-0.18cm}}
+  \only<7->{\vspace{0.6cm}}
+  {
+    \color{llvmblue}\fontsize{70}{70}\selectfont
+    \hspace{0.5cm}LLVM
+  }
+  \vspace{0.9cm}
+
+  {
+    \fontsize{16}{16}\selectfont
+    \color{Red}
+    \only<2-5>{
+      \onslide<2->{Low}\hspace{0.2cm} %
+      \onslide<3->{Level}\hspace{0.2cm} %
+      \onslide<4->{Virtual}\hspace{0.2cm} %
+      \onslide<5>{Machine}
+    }
+    \only<6->{
+      \sout{
+        \onslide<2->{Low}\hspace{0.2cm} %
+        \onslide<3->{Level}\hspace{0.2cm} %
+        \onslide<4->{Virtual}\hspace{0.2cm} %
+        \onslide<5->{Machine}
+      }
+    }
+  }
+
+  \vspace{1cm}
+
+  \only<7>{
+    \huge
+    \color{llvmblue}
+    lldb\hs{0.3cm}
+    opt\hs{0.5cm}
+    lld\hs{0.5cm}
+    lljvm\hs{0.3cm}
+  }
+
+  \only<8->{
+    \includegraphics[scale=0.045]{dragon}\hspace{0.7cm}%
+    \includegraphics[scale=0.02]{swift}\hspace{0.9cm}%
+    \includegraphics[scale=0.02]{rust}\hspace{0.9cm}%
+    \includegraphics[scale=0.068]{tf}
+  }
+
+\end{slide}
+
+\begin{slide}{Compilers}
+  \begin{tikzpicture}[thick]
+    \tikzset{box/.style={
+      draw,
+      rectangle,
+      rounded corners=1pt,
+      inner sep=1cm}
+    }
+
+    % Frontend
+    \onslide<2-4>{
+      \path (0, 0) coordinate [box] (front) node {Frontend};
+    }
+
+    % Optimizer
+    \onslide<3->{
+      \path (4, 0) coordinate [box] (opt) node {Optimizer};
+      \draw [->] (front) -- (opt);
+    }
+
+    % Backend
+    \onslide<4-5>{
+      \path (8, 0) coordinate [box] (back) node {Backend};
+      \draw [->] (opt) -- (back);
+    }
+
+    % Many Frontends
+    \onslide<5->{
+      \path (0,  2.5) coordinate [box] (cpp) node {C\texttt{++}};
+      \path (0,  0) coordinate [box] (go) node {Go};
+      \path (0, -2.5) coordinate [box] (rust) node {Rust};
+
+      % Edges
+      \draw [->, bend left] (cpp) to (opt);
+      \draw [->] (go) -- (opt);
+      \draw [->, bend right] (rust) to (opt);
+    }
+
+    % Many Backends
+    \onslide<6->{
+      \path (8, +2.5) coordinate [box] (x86) node {x86};
+      \path (8,  0) coordinate [box] (arm) node {ARM};
+      \path (8, -2.5) coordinate [box] (riscv) node {RISC-V};
+
+      % Edges
+      \draw [->, bend left] (opt) to (x86);
+      \draw [->] (opt) -- (arm);
+      \draw [->, bend right] (opt) to (riscv);
+
+    }
+  \end{tikzpicture}
+\end{slide}
+
+\begin{frame}[fragile]{LLVM}
+  \begin{center}
+  \begin{tikzpicture}[thick]
+    \tikzset{box/.style={
+      draw,
+      rectangle,
+      rounded corners=1pt,
+      inner sep=0.9cm}
+    }
+    \tikzset{pass/.style={
+      draw,
+      rectangle,
+      rounded corners=1pt,
+      text height=1.3cm,
+      text width=0.25cm}
+    }
+    \tikzset{bigbox/.style={box, inner sep=1cm}}
+
+    %%%%%%%%%%
+    % Frontend
+    %%%%%%%%%%
+    \onslide<1>{
+      \path (0, 0) coordinate [bigbox] (front) node {Frontend};
+    }
+
+    \onslide<2->{
+      \path (0, +1.1) coordinate [box] (lex) node {Lexer};
+      \path (0, -1.1) coordinate [box] (parser) node {Parser};
+      \draw (parser)+(0, -2) node {\texttt{.c,.h}};
+
+      \onslide<-5>{
+        \draw (parser)+(0, -1.5) node {\textbf{Frontend}};
+      }
+      \onslide<6->{
+        \draw (parser)+(0, -1.5) node {\color{Red}\textbf{Frontend}};
+      }
+      \draw [->] (lex) -- (parser);
+    }
+
+    %%%%%%%%%%%
+    % Optimizer
+    %%%%%%%%%%%
+    \onslide<-2>{
+      \path (4, 0) coordinate [bigbox] (opt) node {Optimizer};
+    }
+    \onslide<1>{\draw [->] (front) -- (opt);}
+    \onslide<2>{\draw [->] (parser) -- (opt);}
+
+    \onslide<3->{
+      % Pass blocks and labels
+      \foreach \i/\label/\y %
+        in {0/constprop/-1, 1/licm/+1, 2/inline/-1, 3/loop-unroll/+1} {
+        \draw ({2.75+\i*0.75}, 0) coordinate [pass] (opt\i);
+        \onslide<4->{
+          \draw [dotted, ->]
+                (opt\i) -- ({2.75+\i*0.75}, {\y * 1.2})
+                node [pos=1.75] {\label};
+        }
+      }
+
+      % Edges between passes
+      \draw [->] (parser) -- (opt0);
+      \foreach \i/\j in {0/1, 1/2, 2/3} {
+        \draw (opt\i) --  (opt\j);
+      }
+
+      % Optimizer Label
+      \draw (opt)+(0, -2.61) coordinate (opt-label) node {\textbf{Optimizer}};
+      \draw (opt-label)+(0, -0.5) node {\texttt{.ll,.bc}};
+    }
+
+    %%%%%%%%%
+    % Backend
+    %%%%%%%%%
+    \onslide<-4>{\path (8, 0) coordinate [bigbox] (back) node {Backend};}
+    \onslide<-2>{\draw [->] (opt) -- (back);}
+    \onslide<-4>{\draw [->] (opt3) -- (back);}
+
+
+    \onslide<5->{
+      \path (8, +1.1) coordinate [box] (codegen) node {CodeGen};
+      \path (8, -1.1) coordinate [box] (md-opt)
+            node [align=center] {MD\\Optimizer};
+      \draw (md-opt)+(0, -1.5) node {\textbf{Backend}};
+      \draw (md-opt)+(0, -2) node {\texttt{.o,.S}};
+
+      % Edges
+      \draw [->] (opt3) -- (md-opt);
+      \draw [->] (md-opt) -- (codegen);
+    }
+  \end{tikzpicture}
+  \end{center}
+\end{frame}
 
 \begin{frame}[fragile]{clang}
   \begin{lstlisting}[basicstyle=\Large\ttfamily]
