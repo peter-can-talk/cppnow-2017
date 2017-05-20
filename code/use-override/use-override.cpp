@@ -40,6 +40,14 @@
 #include <vector>
 
 namespace UseOverride {
+namespace {
+bool isInSystemHeader(const clang::ASTContext& Context,
+                      const clang::CXXMethodDecl& Method) {
+  const clang::SourceManager& SourceManager = Context.getSourceManager();
+  const clang::SourceLocation Location = Method.getLocation();
+  return SourceManager.isInSystemHeader(Location);
+}
+}  // namespace
 
 /// Visits all `CXXMethodDecl`s and checks for the `override` keyword.
 class Checker : public clang::RecursiveASTVisitor<Checker> {
@@ -53,6 +61,9 @@ class Checker : public clang::RecursiveASTVisitor<Checker> {
 
   /// Checks if a `CXXMethodDecl` should be marked `override` but is not.
   bool VisitCXXMethodDecl(clang::CXXMethodDecl* MethodDecl) {
+    /// Can stop recursing if we are on a system node.
+    if (isInSystemHeader(*Context, *MethodDecl)) return false;
+
     if (!needsOverride(*MethodDecl)) return true;
 
     auto& Diagnostics = Context->getDiagnostics();
