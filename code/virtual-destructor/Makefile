@@ -1,7 +1,7 @@
 TARGET := virtual-destructor
 HEADERS := -isystem /llvm/include/
 WARNINGS := -Wall -Wextra -pedantic
-CXXFLAGS := $(WARNINGS) -std=c++14 -fno-exceptions -fno-rtti -O3 -Os
+CXXFLAGS := $(WARNINGS) -std=c++1z -fno-exceptions -fno-rtti -O3 -Os
 LDFLAGS := `llvm-config --ldflags`
 
 CLANG_LIBS := \

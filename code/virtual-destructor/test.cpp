@@ -1,13 +1,16 @@
+namespace X {
 class Foo {
  public:
   ~Foo() {}
 
   virtual void foo() {}
 };
+}  // namespace X
 
-
-class Bar : public Foo {
+namespace Y {
+class Bar : public X::Foo {
   void foo() override {}
 };
 
-class Baz : public Foo {};
+class Baz : public X::Foo {};
+}  // namespace Y

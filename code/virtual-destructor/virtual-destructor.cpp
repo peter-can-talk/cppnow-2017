@@ -10,6 +10,7 @@
 
 // LLVM includes
 #include <llvm/ADT/StringRef.h>
+#include <llvm/ADT/StringSet.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/raw_ostream.h>
 
@@ -23,11 +24,17 @@ class MatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
   void run(const MatchResult& Result) {
     const auto* Destructor =
         Result.Nodes.getNodeAs<clang::CXXDestructorDecl>("destructor");
+
+    const clang::CXXRecordDecl* Base = Destructor->getParent();
+
+    // Insert the new name of the base class or return if we've seen it already.
+    const std::string BaseName = Base->getQualifiedNameAsString();
+    if (auto[_, AlreadySeen] = BaseNames.insert(BaseName); AlreadySeen) {
+      return;
+    }
+
     const auto* Derived =
         Result.Nodes.getNodeAs<clang::CXXRecordDecl>("derived");
-
-    // All constraints are already satisfied!
-
 
     clang::DiagnosticsEngine& Diagnostics = Result.Context->getDiagnostics();
     const char Message[] =
@@ -38,13 +45,12 @@ class MatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
     // We can even warn about missing virtual when the user forgot to declare
     // the destructor alltogether! In that case, the diagnostic should point to
     // the class declaration instead of the destructor declaration.
-    const clang::CXXRecordDecl* Base = Destructor->getParent();
     auto Location = Destructor->isUserProvided() ? Destructor->getLocStart()
                                                  : Base->getLocation();
 
     clang::DiagnosticBuilder Builder = Diagnostics.Report(Location, ID);
-    Builder.AddString(Base->getName());
-    Builder.AddString(Derived->getName());
+    Builder.AddString(BaseName);
+    Builder.AddString(Derived->getQualifiedNameAsString());
 
     // If the destructor is user-provided, we also recommend a FixItHint.
     if (Destructor->isUserProvided()) {
@@ -53,6 +59,10 @@ class MatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
       Builder.AddFixItHint(FixIt);
     }
   }
+
+ private:
+  // A set of all base-class names seen so far, so we avoid duplicate warnings.
+  llvm::StringSet<> BaseNames;
 };
 
 class Consumer : public clang::ASTConsumer {
