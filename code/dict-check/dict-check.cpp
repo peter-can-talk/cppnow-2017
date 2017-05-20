@@ -40,7 +40,7 @@ Dictionary ReadWordsFromFile(const std::string& Filename) {
   }
 
   if (Words.empty()) {
-    llvm::errs() << "Dictionary must not be empty!";
+    llvm::errs() << "Dictionary must not be empty!\n";
   } else {
     llvm::errs() << "Read " << Words.size() << " words from " << Filename
                  << '\n';
