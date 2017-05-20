@@ -13,11 +13,9 @@
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/raw_ostream.h>
 
-// Standard includes
-#include <cassert>
-
 namespace VirtualDestructorTool {
 
+/// Handles all matched classes and emits diagnostics when appropriate.
 class MatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
  public:
   using MatchResult = clang::ast_matchers::MatchFinder::MatchResult;
@@ -25,29 +23,32 @@ class MatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
   void run(const MatchResult& Result) {
     const auto* Destructor =
         Result.Nodes.getNodeAs<clang::CXXDestructorDecl>("destructor");
-    assert(Destructor != nullptr);
     const auto* Derived =
         Result.Nodes.getNodeAs<clang::CXXRecordDecl>("derived");
-    assert(Derived != nullptr);
 
-    const clang::CXXRecordDecl* Class = Destructor->getParent();
+    // All constraints are already satisfied!
 
-    auto& Diagnostics = Result.Context->getDiagnostics();
+
+    clang::DiagnosticsEngine& Diagnostics = Result.Context->getDiagnostics();
     const char Message[] =
-        "'%0' should have a virtual destructor "
-        "because '%1' derives from it";
+        "'%0' should have a virtual destructor because '%1' derives from it";
     const unsigned ID =
         Diagnostics.getCustomDiagID(clang::DiagnosticsEngine::Warning, Message);
 
+    // We can even warn about missing virtual when the user forgot to declare
+    // the destructor alltogether! In that case, the diagnostic should point to
+    // the class declaration instead of the destructor declaration.
+    const clang::CXXRecordDecl* Base = Destructor->getParent();
     auto Location = Destructor->isUserProvided() ? Destructor->getLocStart()
-                                                 : Class->getLocation();
+                                                 : Base->getLocation();
 
     clang::DiagnosticBuilder Builder = Diagnostics.Report(Location, ID);
-    Builder.AddString(Class->getName());
+    Builder.AddString(Base->getName());
     Builder.AddString(Derived->getName());
 
+    // If the destructor is user-provided, we also recommend a FixItHint.
     if (Destructor->isUserProvided()) {
-      const auto FixIt =
+      const clang::FixItHint FixIt =
           clang::FixItHint::CreateInsertion(Location, "virtual ");
       Builder.AddFixItHint(FixIt);
     }
@@ -56,16 +57,22 @@ class MatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
 
 class Consumer : public clang::ASTConsumer {
  public:
+  /// Creates the `ASTMatcher` to match destructors and dispatches it on the TU.
   void HandleTranslationUnit(clang::ASTContext& Context) {
     using namespace clang::ast_matchers;
+
+    // Want to match all classes, that are derived from classe, that have a
+    // destructor tha tis not virtual. This leaves nothing to be done in the
+    // `MatchHandler` than emitting a diagnostics.
 
     // clang-format off
     const auto Matcher =
         cxxRecordDecl(
           isDerivedFrom(
             cxxRecordDecl(
-              has(cxxDestructorDecl(unless(isVirtual())
-            ).bind("destructor"))))
+              has(cxxDestructorDecl(
+                unless(isVirtual())
+              ).bind("destructor"))))
           ).bind("derived");
     // clang-format on
 
@@ -76,6 +83,7 @@ class Consumer : public clang::ASTConsumer {
   }
 };
 
+/// Creates an `ASTConsumer` that defines the matcher.
 class Action : public clang::ASTFrontendAction {
  public:
   using ASTConsumerPointer = std::unique_ptr<clang::ASTConsumer>;
@@ -90,9 +98,10 @@ class Action : public clang::ASTFrontendAction {
 namespace {
 llvm::cl::OptionCategory
     VirtualDestructorToolCategory("VirtualDestructorTool Options");
-
 llvm::cl::extrahelp VirtualDestructorToolCategoryHelp(R"(
-    Verifies that you declare destructors 'virtual' when necessary.
+    Verifies that destructors are declared 'virtual' in case at least one class
+    derives from it. Also warns about a missing destructor if no user-provided
+    destructor was ever declared.
 )");
 
 }  // namespace
@@ -104,6 +113,6 @@ auto main(int argc, const char* argv[]) -> int {
   ClangTool Tool(OptionsParser.getCompilations(),
                  OptionsParser.getSourcePathList());
 
-  auto action = newFrontendActionFactory<VirtualDestructorTool::Action>();
-  return Tool.run(action.get());
+  auto Action = newFrontendActionFactory<VirtualDestructorTool::Action>();
+  return Tool.run(Action.get());
 }

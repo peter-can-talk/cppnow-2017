@@ -1,14 +1,13 @@
 class Foo {
  public:
-  ~Foo() {
-  }
+  ~Foo() {}
 
-  virtual void foo() {
-  }
+  virtual void foo() {}
 };
 
 
 class Bar : public Foo {
-  void foo() override {
-  }
+  void foo() override {}
 };
+
+class Baz : public Foo {};
