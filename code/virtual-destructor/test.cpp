@@ -1,16 +1,11 @@
 namespace X {
-class Foo {
+class Base {
  public:
-  ~Foo() {}
-
-  virtual void foo() {}
+  ~Base() {}
 };
 }  // namespace X
 
 namespace Y {
-class Bar : public X::Foo {
-  void foo() override {}
-};
-
-class Baz : public X::Foo {};
+class DerivedA : public X::Base {};
+class DerivedB : public X::Base {};
 }  // namespace Y
