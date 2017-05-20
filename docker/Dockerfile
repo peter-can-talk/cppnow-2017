@@ -14,7 +14,7 @@ RUN wget -O - 'http://apt.llvm.org/llvm-snapshot.gpg.key' | apt-key add - \
 
 # Install clang.
 RUN apt-get update -y && apt-get install -y \
-  llvm-4.0 llvm-4.0-dev clang-4.0 clang-4.0-dev
+  llvm-4.0 llvm-4.0-dev clang-4.0 clang-4.0-dev python-clang-4.0
 
 ENV C clang-4.0
 ENV CXX clang++-4.0

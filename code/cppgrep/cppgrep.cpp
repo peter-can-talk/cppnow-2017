@@ -20,7 +20,6 @@
 namespace {
 llvm::cl::OptionCategory cppGrepCategory("CppGrep Options");
 
-
 llvm::cl::opt<std::string> patternOption(llvm::cl::Positional,
                                          llvm::cl::Required,
                                          llvm::cl::desc("<pattern>"));
@@ -28,7 +27,6 @@ llvm::cl::opt<std::string> patternOption(llvm::cl::Positional,
 llvm::cl::list<std::string> filesOption(llvm::cl::Positional,
                                         llvm::cl::OneOrMore,
                                         llvm::cl::desc("<file> [files...]"));
-
 llvm::cl::opt<bool>
     caseInsensitiveOption("i",
                           llvm::cl::desc("Make the search case-insensitive"),
@@ -77,8 +75,7 @@ class Filter {
  public:
   using Predicate = std::function<bool(CXCursor)>;
 
-  explicit Filter(Predicate&& pattern) : _pattern(std::move(pattern)) {
-  }
+  explicit Filter(Predicate&& pattern) : _pattern(std::move(pattern)) {}
 
   void add(Predicate&& predicate) {
     _predicates.emplace_back(std::move(predicate));
@@ -101,8 +98,7 @@ class Filter {
 
 struct Data {
   using Lines = std::vector<std::string>;
-  Data(Filter&& filter) : filter(std::move(filter)) {
-  }
+  Data(Filter&& filter) : filter(std::move(filter)) {}
 
   Filter filter;
   Lines lines;

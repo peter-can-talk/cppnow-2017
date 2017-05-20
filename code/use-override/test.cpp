@@ -13,4 +13,3 @@ struct B : public A {
   virtual void h();
 };
 
-auto main() -> int { }
