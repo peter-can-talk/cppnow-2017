@@ -4,7 +4,7 @@ Slides and code samples for my talk at C++Now 2017.
 
 ## Contents
 
-- `slides`: My beautiful LaTeX slides.
+- `presentation`: My beautiful LaTeX slides.
 - `code`: Code samples including a dozen tools to try out.
 - `server`: My online polling server.
 - `Dockerfile`: A Dockerfile to build a standalone container for LLVM and clang tooling.
