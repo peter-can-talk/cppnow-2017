@@ -1,4 +1,4 @@
-# C++Now 2017 -- clang-useful
+# C++Now 2017: clang-useful
 
 Slides and code samples for my talk at C++Now 2017.
 
