@@ -38,6 +38,7 @@ class MatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
       numberOfEdges += Block->succ_size();
     }
 
+    // E - V + 2 * P
     // 2 * 1 = 2 * numberOfComponents.
     const unsigned Complexity = numberOfEdges - numberOfNodes + (2 * 1);
     if (Complexity <= Threshold) return;
